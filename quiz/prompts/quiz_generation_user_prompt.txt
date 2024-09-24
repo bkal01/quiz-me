@@ -1,0 +1,26 @@
+You are tasked with generating a PhD-level quiz based on a set of notes provided as a nested dictionary. These notes summarize a topic from a computer science paper, article, or lecture. Here’s how to proceed:
+
+1. **Quiz title**: Generate a title for the quiz based on the topic of the notes.
+2. **Number of questions**: You will be told how many questions to create. Use this count as a strict limit.
+3. **Quiz questions**: The questions should cover the following categories:
+   - **Definitions/Formulas**: Simple conceptual or formulaic questions.
+   - **Broad Concepts**: Larger ideas or principles.
+   - **Novel Ideas/Key Intuitions**: New ideas or key insights.
+   - **Methodologies/Results**: Methods, results, and their implications.
+   - **Applications/Critiques**: Real-world applications or critiques of the work.
+
+The quiz you generate should have 10 questions.
+
+The notes you receive could look like the following:
+{
+    "Notes": {
+        "Introduction": {
+            "This paper covers the autoencoder architecture": {},
+        },
+        "Experiments": {
+            "The model was evaluated on ImageNet to learn compact feature representations.": {},
+        },
+    },
+}
+
+Generate a quiz that spans the categories, ensuring a range of difficulty, with an emphasis on questions that require deep understanding. Here are the notes:
