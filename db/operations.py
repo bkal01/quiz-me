@@ -56,3 +56,49 @@ def fetch_due_review_items(cnx: MySQLConnection, due_date: date) -> List[ReviewI
         print(f"Error getting review items due on {due_date}: {err}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        
+
+batch_update_review_items_query = """
+UPDATE review_items
+SET
+    last_reviewed_date = %s,
+    next_review_date = %s,
+    ease_factor = %s,
+    review_interval = %s,
+    repetition_count = %s,
+    overdue_days = %s,
+    skip_counter = %s,
+    last_updated_at = %s
+WHERE page_id = %s
+"""
+
+def batch_update_review_items(cnx: MySQLConnection, review_items: List[ReviewItem]) -> None:
+    """
+    cnx: MySQL connection.
+    review_items: a list of review items that we need to update.
+    """
+    data_update_review_items = [
+        (
+            item.last_reviewed_date,
+            item.next_review_date,
+            item.ease_factor,
+            item.review_interval,
+            item.repetition_count,
+            item.overdue_days,
+            item.skip_counter,
+            item.last_updated_at,
+            item.page_id
+        ) for item in review_items
+    ]
+    
+    try:
+        with cnx.cursor() as cursor:
+            cursor.executemany(batch_update_review_items_query, data_update_review_items)
+        cnx.commit()
+        print(f"Batch updated {cursor.rowcount} review items succesfully.")
+    except MySQLError as err:
+        cnx.rollback()
+        print(f"Error batch updating review items: {err}")
+    except Exception as e:
+        cnx.rollback()
+        print(f"An unexpected error occurred: {e}")
