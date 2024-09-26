@@ -1,4 +1,6 @@
+from datetime import date
 from mysql.connector import Error as MySQLError, MySQLConnection
+from typing import List
 
 from db.review_item import ReviewItem
 
@@ -18,10 +20,39 @@ def add_review_item(cnx: MySQLConnection, review_item: ReviewItem) -> None:
         with cnx.cursor() as cursor:
             cursor.execute(add_review_item_query, review_item.__dict__)
         cnx.commit()
-        print(f"Inserted page {review_item.page_id} successfully.")
+        print(f"Inserted review item {review_item.page_id} successfully.")
     except MySQLError as err:
         cnx.rollback()
-        print(f"Error inserting page {review_item.page_id}: {err}.")
+        print(f"Error inserting review item {review_item.page_id}: {err}.")
     except Exception as e:
         cnx.rollback()
+        print(f"An unexpected error occurred: {e}")
+        
+
+fetch_due_review_items_query = """
+SELECT * FROM review_items
+WHERE next_review_date <= %(due_date)s
+ORDER BY priority_score DESC, overdue_days DESC
+"""
+    
+def fetch_due_review_items(cnx: MySQLConnection, due_date: date) -> List[ReviewItem]:
+    """
+    cnx: MySQL connection.
+    date: the specific date from which we want to fetch the review items due.
+    Gets all review items due on or before the given date.
+    """
+    data_due_review_items = {
+        "due_date": due_date,
+    }
+    
+    try:
+        with cnx.cursor(dictionary=True) as cursor:
+            cursor.execute(fetch_due_review_items_query, data_due_review_items)
+            rows = cursor.fetchall()
+        print(f"Fetched {len(rows)} review item(s) due on {due_date} successfully.")
+        review_items = [ReviewItem(**row) for row in rows]
+        return review_items
+    except MySQLError as err:
+        print(f"Error getting review items due on {due_date}: {err}")
+    except Exception as e:
         print(f"An unexpected error occurred: {e}")
