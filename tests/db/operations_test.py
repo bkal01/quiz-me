@@ -5,7 +5,7 @@ import unittest
 from datetime import date
 from unittest.mock import patch, MagicMock
 
-from db.operations import add_review_item, batch_update_review_items, fetch_due_review_items
+from db.operations import add_review_item, batch_update_review_items, delete_review_item, fetch_due_review_items
 from db.review_item import create_new_review_item
 
 class TestDBOperations(unittest.TestCase):
@@ -61,6 +61,21 @@ class TestDBOperations(unittest.TestCase):
         mock_cursor.executemany.assert_called_once()
         mock_cnx.commit.assert_called_once()
         mock_cnx.rollback.assert_not_called()
+    
+    @patch("db.connection.get_connection")
+    def test_delete_review_item(self, mock_get_connection):
+        mock_cnx = mock_get_connection.return_value
+        mock_cursor_context = MagicMock()
+        mock_cursor = mock_cursor_context.__enter__.return_value
+        mock_cnx.cursor.return_value = mock_cursor_context
+        
+        test_page_id = "".join(random.choices(string.ascii_letters + string.digits, k=32))
+        delete_review_item(mock_cnx, test_page_id)
+        
+        mock_cursor.execute.assert_called_once()
+        mock_cnx.commit.assert_called_once()
+        mock_cnx.rollback.assert_not_called()
+        
 
 if __name__ == "__main__":
     unittest.main()

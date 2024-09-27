@@ -102,3 +102,30 @@ def batch_update_review_items(cnx: MySQLConnection, review_items: List[ReviewIte
     except Exception as e:
         cnx.rollback()
         print(f"An unexpected error occurred: {e}")
+
+
+delete_review_item_query = """
+DELETE FROM review_items
+WHERE page_id = %(page_id)s
+"""
+
+def delete_review_item(cnx: MySQLConnection, page_id: str) -> None:
+    """
+    cnx: MySQL connection.
+    page_id: the page_id of the review item we want to delete.
+    Deletes a review item from the db. Useful for testing/removing old records.
+    """
+    data_delete_review_item = {
+        "page_id": page_id,
+    }
+    try:
+        with cnx.cursor() as cursor:
+            cursor.execute(delete_review_item_query, data_delete_review_item)
+        cnx.commit()
+        print(f"Deleted review item {page_id} successfully.")
+    except MySQLError as err:
+        cnx.rollback()
+        print(f"Error deleting review item: {err}")
+    except Exception as e:
+        cnx.rollback()
+        print(f"An unexpected error occurred: {e}")

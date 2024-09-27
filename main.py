@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from dotenv import load_dotenv
 
 from db.connection import get_connection
-from db.operations import add_review_item, batch_update_review_items, fetch_due_review_items
+from db.operations import add_review_item, batch_update_review_items, delete_review_item, fetch_due_review_items
 from db.review_item import create_new_review_item
 
 def main() -> None:
@@ -56,6 +56,18 @@ def main() -> None:
     )
     assert len(due_review_items) == 2
     print(f"New ease factors: {due_review_items[0].ease_factor}, {due_review_items[1].ease_factor}")
+    
+    delete_review_item(
+        cnx=cnx,
+        page_id=another_modified_review_item.page_id,
+    )
+    
+    due_review_items = fetch_due_review_items(
+        cnx=cnx,
+        due_date=due_date,
+    )
+    assert len(due_review_items) == 1
+    print(f"Remaining page_id: {due_review_items[0].page_id}")
     
 
 if __name__ == "__main__":
