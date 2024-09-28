@@ -5,7 +5,7 @@ import unittest
 from datetime import date
 from unittest.mock import patch, MagicMock
 
-from db.operations import add_review_item, batch_update_review_items, delete_review_item, fetch_due_review_items
+from db.operations import add_review_item, batch_update_review_items, delete_review_item, fetch_due_review_items, fetch_last_creation_date
 from db.review_item import create_new_review_item
 
 class TestDBOperations(unittest.TestCase):
@@ -75,6 +75,18 @@ class TestDBOperations(unittest.TestCase):
         mock_cursor.execute.assert_called_once()
         mock_cnx.commit.assert_called_once()
         mock_cnx.rollback.assert_not_called()
+        
+    @patch("db.connection.get_connection")
+    def test_fetch_last_creation_date(self, mock_get_connection):
+        mock_cnx = mock_get_connection.return_value
+        mock_cursor_context = MagicMock()
+        mock_cursor = mock_cursor_context.__enter__.return_value
+        mock_cnx.cursor.return_value = mock_cursor_context
+        
+        fetch_last_creation_date(mock_cnx)
+        
+        mock_cursor.execute.assert_called_once()
+        mock_cursor.fetchall.assert_called_once()
         
 
 if __name__ == "__main__":

@@ -129,3 +129,26 @@ def delete_review_item(cnx: MySQLConnection, page_id: str) -> None:
     except Exception as e:
         cnx.rollback()
         print(f"An unexpected error occurred: {e}")
+        
+fetch_last_creation_date_query = """
+SELECT created_at FROM review_items
+ORDER BY created_at DESC
+LIMIT 1
+"""
+
+def fetch_last_creation_date(cnx: MySQLConnection) -> date:
+    """
+    cnx: MySQL connection.
+    Gets the most recent review item creation date.
+    """
+    try:
+        with cnx.cursor(dictionary=True) as cursor:
+            cursor.execute(fetch_last_creation_date_query)
+            rows = cursor.fetchall()
+        fetched_date = rows[0]["created_at"]
+        print(f"Fetched date {fetched_date} successfully")
+        return fetched_date
+    except MySQLError as err:
+        print(f"Error getting most recent creation date: {err}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
