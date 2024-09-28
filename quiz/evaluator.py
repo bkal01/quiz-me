@@ -1,9 +1,40 @@
 from copy import deepcopy
+from typing import Dict, Tuple
+
+from openai import OpenAI
+from pydantic import BaseModel
+
 from db.review_item import ReviewItem
 
+class Evaluation(BaseModel):
+    feedback: Dict[str, str]
+    grade: int
+    
+
 class Evaluator:
-    def __init__(self) -> None:
-        return
+    def __init__(self, system_prompt: str, user_prompt: str) -> None:
+        self.client = OpenAI()
+        self.system_prompt = system_prompt
+        self.user_prompt = user_prompt
+    
+    def grade_quiz(self, notes: Dict[str, str], quiz: Dict[str, str]) -> Tuple[Dict[str, str], int]:
+        """
+        quiz: a dictionary mapping questions to user-generated answers.
+        Asks an LLM to grade the quiz. Returns two outputs: a dictionary mapping questions to feedback, and an integer grade from 0 to 5.
+        """
+        completion = self.client.beta.chat.completions.parse(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": str(self.system_prompt)},
+                {
+                    "role": "user",
+                    "content": f"{self.user_prompt}\n{quiz}",
+                }
+            ],
+            response_format=Evaluation,
+        )
+        print(completion.choices[0].message.parsed)
+        return dict(), 0
 
     def update_review_item(self, review_item: ReviewItem, grade: int) -> ReviewItem:
         """

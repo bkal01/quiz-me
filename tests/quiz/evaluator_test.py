@@ -9,7 +9,10 @@ from quiz.evaluator import Evaluator
 
 class TestEvaluator(unittest.TestCase):
     def setUp(self):
-        self.evaluator = Evaluator()
+        self.evaluator = Evaluator(
+            system_prompt="",
+            user_prompt="",
+        )
         self.review_item_old = ReviewItem(
             page_id="".join(random.choices(string.ascii_letters + string.digits, k=32)),
             initial_learning_date=date.today() - timedelta(1),
