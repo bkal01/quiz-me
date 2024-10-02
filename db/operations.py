@@ -6,8 +6,8 @@ from db.review_item import ReviewItem
 
 add_review_item_query = """
 INSERT INTO review_items
-(page_id, initial_learning_date, last_reviewed_date, next_review_date, ease_factor, review_interval, repetition_count, performance_score, priority_score, overdue_days, skip_counter)
-VALUES (%(page_id)s, %(initial_learning_date)s, %(last_reviewed_date)s, %(next_review_date)s, %(ease_factor)s, %(review_interval)s, %(repetition_count)s, %(performance_score)s, %(priority_score)s, %(overdue_days)s, %(skip_counter)s)
+(page_id, initial_learning_date, last_reviewed_date, next_review_date, ease_factor, review_interval, repetition_count, performance_score, priority_score, overdue_days, skip_counter, source)
+VALUES (%(page_id)s, %(initial_learning_date)s, %(last_reviewed_date)s, %(next_review_date)s, %(ease_factor)s, %(review_interval)s, %(repetition_count)s, %(performance_score)s, %(priority_score)s, %(overdue_days)s, %(skip_counter)s, %(source)s)
 """
 
 def add_review_item(cnx: MySQLConnection, review_item: ReviewItem) -> None:
@@ -68,6 +68,7 @@ SET
     repetition_count = %s,
     overdue_days = %s,
     skip_counter = %s,
+    source = %s,
     last_updated_at = %s
 WHERE page_id = %s
 """
@@ -86,6 +87,7 @@ def batch_update_review_items(cnx: MySQLConnection, review_items: List[ReviewIte
             item.repetition_count,
             item.overdue_days,
             item.skip_counter,
+            item.source,
             item.last_updated_at,
             item.page_id
         ) for item in review_items
@@ -132,18 +134,28 @@ def delete_review_item(cnx: MySQLConnection, page_id: str) -> None:
         
 fetch_last_creation_date_query = """
 SELECT created_at FROM review_items
+WHERE source = %(source)s
 ORDER BY created_at DESC
 LIMIT 1
 """
 
-def fetch_last_creation_date(cnx: MySQLConnection) -> date:
+def fetch_last_creation_date(cnx: MySQLConnection, source: str) -> date:
     """
     cnx: MySQL connection.
-    Gets the most recent review item creation date.
+    source: the source (defined in notion/consts.py) that we want to read from.
+    Gets the most recent review item creation date from the provided source. We do
+    this at the source level because we need to pull new pages from different source_ids.
+    Different sources can have new pages written to them at different times. If source A
+    has a last creation date more recent than source B, but source B still has pages that
+    haven't been fetched, those new pages in source B could be skipped unless we track creation
+    dates by source.
     """
+    fetch_last_creation_date_item = {
+        "source": source,
+    }
     try:
         with cnx.cursor(dictionary=True) as cursor:
-            cursor.execute(fetch_last_creation_date_query)
+            cursor.execute(fetch_last_creation_date_query, fetch_last_creation_date_item)
             rows = cursor.fetchall()
         fetched_date = rows[0]["created_at"]
         print(f"Fetched date {fetched_date} successfully")

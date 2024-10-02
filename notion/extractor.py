@@ -1,17 +1,26 @@
 import os
-import typing
 import queue
 
-from dotenv import load_dotenv
+from mysql.connector import MySQLConnection
 from notion_client import Client
+from typing import Any, Dict, List
 
-load_dotenv()         
+from db.operations import add_review_item, fetch_last_creation_date
+from db.review_item import create_new_review_item_from_source, ReviewItem
+from notion.consts import SOURCE_ID_TO_NAME_MAP
+
 
 class NotionExtractor():
-    def __init__(self):
+    def __init__(self, cnx: MySQLConnection, sources: List[str]):
+        """
+        cnx: MySQLConnection.
+        sources: a list of notion source ids we want to pull new pages from.
+        """
+        self.cnx = cnx
+        self.sources = sources
         self.client = Client(auth=os.environ["NOTION_TOKEN"])
         
-    def get_base_text(self, block: typing.Dict[str, typing.Any]) -> str:
+    def get_base_text(self, block: Dict[str, Any]) -> str:
         """
         block (dict): a Notion block.
         Helper function to get the base text of a block according to its type.
@@ -26,7 +35,7 @@ class NotionExtractor():
             else:
                 return f'{rich_text["plain_text"]} ({rich_text["href"]})'
         
-    def get_parent_id(self, block: typing.Dict[str, typing.Any]) -> str:
+    def get_parent_id(self, block: Dict[str, Any]) -> str:
         """
         block (dict): a Notion block.
         Helper function to get the parent id of a block according to the parent type.
@@ -36,7 +45,7 @@ class NotionExtractor():
         return parent[parent_type]
             
     
-    def extract(self, block_id: str) -> typing.Dict[str, typing.Any]:
+    def extract(self, block_id: str) -> Dict[str, Any]:
         """
         block_id (str): the 32 character id of the block whose content we want to extract.
         Uses BFS to extract content from a block and all of its sub-blocks.
@@ -70,6 +79,37 @@ class NotionExtractor():
                     q.put(child_block)
         return contents
     
+    def pull_new_pages_from_source(self, source_id: str) -> List[ReviewItem]:
+        """
+        source_id: the id of the database/page we want to pull pages from. could be a database of papers, a page with lecture notes, etc.
+        Checks to see what pages have been added in the given source since the last scan.
+        Creates ReviewItems for each of those pages and stores them in the db.
+        """
+        last_creation_date = fetch_last_creation_date(
+            cnx=self.cnx,
+            source=SOURCE_ID_TO_NAME_MAP[source_id],
+        )
+        
+        resp = self.client.databases.query(source_id, filter={
+            "property": "Created time",
+            "date": {
+                "after": str(last_creation_date),
+            },
+        })
+        
+        new_review_items = []
+        for result in resp["results"]:
+            new_review_item = create_new_review_item_from_source(
+                page_id=result["id"],
+                source=SOURCE_ID_TO_NAME_MAP[source_id],
+            )
+            add_review_item(
+                cnx=self.cnx,
+                review_item=new_review_item
+            )
+            new_review_items.append(new_review_item)
+            
+        return new_review_items
     
 if __name__ == "__main__":
     extractor = NotionExtractor()

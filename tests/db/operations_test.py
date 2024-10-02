@@ -83,7 +83,7 @@ class TestDBOperations(unittest.TestCase):
         mock_cursor = mock_cursor_context.__enter__.return_value
         mock_cnx.cursor.return_value = mock_cursor_context
         
-        fetch_last_creation_date(mock_cnx)
+        fetch_last_creation_date(mock_cnx, "ml_paper_notes")
         
         mock_cursor.execute.assert_called_once()
         mock_cursor.fetchall.assert_called_once()
