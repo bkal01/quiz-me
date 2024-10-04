@@ -157,6 +157,8 @@ def fetch_last_creation_date(cnx: MySQLConnection, source: str) -> date:
         with cnx.cursor(dictionary=True) as cursor:
             cursor.execute(fetch_last_creation_date_query, fetch_last_creation_date_item)
             rows = cursor.fetchall()
+        if len(rows) == 0:
+            return date.fromtimestamp(0)
         fetched_date = rows[0]["created_at"]
         print(f"Fetched date {fetched_date} successfully")
         return fetched_date

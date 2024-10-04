@@ -1,7 +1,12 @@
 from typing import Any, Dict, List
 
+from datetime import date
+from mysql.connector import MySQLConnection
 from openai import OpenAI
 from pydantic import BaseModel
+
+from db.operations import fetch_due_review_items
+from db.review_item import ReviewItem
 
 class Question(BaseModel):
     question_text: str
@@ -11,12 +16,22 @@ class Quiz(BaseModel):
     questions: List[Question]
 
 class QuizGenerator():
-    def __init__(self, system_prompt: str, user_prompt: str) -> None:
+    def __init__(self, cnx: MySQLConnection, system_prompt: str, user_prompt: str) -> None:
+        self.cnx = cnx
         self.client = OpenAI()
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
         
-    def generate_quiz(self, content: Dict[str, Any]) -> str:
+    def get_review_items_due_today(self) -> List[ReviewItem]:
+        due_review_items = fetch_due_review_items(
+            cnx=self.cnx,
+            due_date=date.today(),
+        )
+        if len(due_review_items) == 0:
+            print("No items to review today.")
+        return due_review_items
+        
+    def generate_quiz(self, content: Dict[str, Any]) -> Quiz:
         completion = self.client.beta.chat.completions.parse(
             model="gpt-4o-mini",
             messages=[
@@ -28,4 +43,5 @@ class QuizGenerator():
             ],
             response_format=Quiz,
         )
-        return completion.choices[0].message.parsed
+        quiz_data = completion.choices[0].message.parsed
+        return quiz_data

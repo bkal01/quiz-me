@@ -28,8 +28,14 @@ class NotionExtractor():
         block_type = block["type"]
         if block_type == "child_page":
             return block["child_page"]["title"]
+        elif block_type == "image":
+            # Will support images in the future.
+            return ""
         else:
-            rich_text = block[block_type]["rich_text"][0]
+            rich_text = block[block_type]["rich_text"]
+            if len(rich_text) == 0:
+                return ""
+            rich_text = rich_text[0]
             if rich_text["href"] is None:
                 return rich_text["plain_text"]
             else:
@@ -98,6 +104,9 @@ class NotionExtractor():
         })
         
         new_review_items = []
+        if len(resp["results"]) == 0:
+            print("No new pages to review.")
+            return []
         for result in resp["results"]:
             new_review_item = create_new_review_item_from_source(
                 page_id=result["id"],
